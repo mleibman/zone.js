@@ -27,7 +27,7 @@ var Zone$1 = (function (global) {
         performance && performance['measure'] && performance['measure'](name, label);
     }
     mark('Zone');
-    var checkDuplicate = global[('__zone_symbol__forceDuplicateZoneCheck')] === true;
+    var checkDuplicate = global[__symbol__('forceDuplicateZoneCheck')] === true;
     if (global['Zone']) {
         // if global['Zone'] already exists (maybe zone.js was already loaded or
         // some other lib also registered a global object named Zone), we may need
@@ -553,6 +553,13 @@ var Zone$1 = (function (global) {
         };
         return ZoneTask;
     }());
+    // Initialize before it's accessed below.
+    // __Zone_symbol_prefix global can be used to override the default zone
+    // symbol prefix with a custom one if needed.
+    var symbolPrefix = global['__Zone_symbol_prefix'] || '__zone_symbol__';
+    function __symbol__(name) {
+        return symbolPrefix + name;
+    }
     //////////////////////////////////////////////////////
     //////////////////////////////////////////////////////
     ///  MICROTASK QUEUE
@@ -657,9 +664,6 @@ var Zone$1 = (function (global) {
     var _currentTask = null;
     var _numberOfNestedTaskFrames = 0;
     function noop() { }
-    function __symbol__(name) {
-        return '__zone_symbol__' + name;
-    }
     performanceMeasure('Zone', 'Zone');
     return global['Zone'] = Zone;
 })(typeof window !== 'undefined' && window || typeof self !== 'undefined' && self || global);
@@ -1185,8 +1189,8 @@ var ZONE_SYMBOL_REMOVE_EVENT_LISTENER = Zone.__symbol__(REMOVE_EVENT_LISTENER_ST
 var TRUE_STR = 'true';
 /** false string const */
 var FALSE_STR = 'false';
-/** __zone_symbol__ string const */
-var ZONE_SYMBOL_PREFIX = '__zone_symbol__';
+/** Zone symbol prefix string const. */
+var ZONE_SYMBOL_PREFIX = Zone.__symbol__('');
 function wrapWithCurrentZone(callback, source) {
     return Zone.current.wrap(callback, source);
 }
@@ -1666,8 +1670,8 @@ var OPTIMIZED_ZONE_EVENT_TASK_DATA = {
 };
 var zoneSymbolEventNames$1 = {};
 var globalSources = {};
-var EVENT_NAME_SYMBOL_REGX = /^__zone_symbol__(\w+)(true|false)$/;
-var IMMEDIATE_PROPAGATION_SYMBOL = ('__zone_symbol__propagationStopped');
+var EVENT_NAME_SYMBOL_REGX = new RegExp('^' + ZONE_SYMBOL_PREFIX + '(\\w+)(true|false)$');
+var IMMEDIATE_PROPAGATION_SYMBOL = zoneSymbol('propagationStopped');
 function patchEventTarget(_global, apis, patchOptions) {
     var ADD_EVENT_LISTENER = (patchOptions && patchOptions.add) || ADD_EVENT_LISTENER_STR;
     var REMOVE_EVENT_LISTENER = (patchOptions && patchOptions.rm) || REMOVE_EVENT_LISTENER_STR;
@@ -1886,7 +1890,7 @@ function patchEventTarget(_global, apis, patchOptions) {
                 (typeOfDelegate === 'object' && task.originalDelegate === delegate);
         };
         var compare = (patchOptions && patchOptions.diff) ? patchOptions.diff : compareTaskCallbackVsDelegate;
-        var blackListedEvents = Zone[Zone.__symbol__('BLACK_LISTED_EVENTS')];
+        var blackListedEvents = Zone[zoneSymbol('BLACK_LISTED_EVENTS')];
         var makeAddListener = function (nativeListener, addSource, customScheduleFn, customCancelFn, returnTarget, prepend) {
             if (returnTarget === void 0) { returnTarget = false; }
             if (prepend === void 0) { prepend = false; }
@@ -3008,7 +3012,7 @@ function registerElementPatch(_global, api) {
  * @suppress {missingRequire}
  */
 (function (_global) {
-    _global['__zone_symbol__legacyPatch'] = function () {
+    _global[Zone.__symbol__('legacyPatch')] = function () {
         var Zone = _global['Zone'];
         Zone.__load_patch('registerElement', function (global, Zone, api) {
             registerElementPatch(global, api);
@@ -3156,7 +3160,7 @@ function patchTimer(window, setName, cancelName, nameSuffix) {
  */
 function patchCustomElements(_global, api) {
     var _a = api.getGlobalObjects(), isBrowser = _a.isBrowser, isMix = _a.isMix;
-    if ((!isBrowser && !isMix) || !('customElements' in _global)) {
+    if ((!isBrowser && !isMix) || !_global['customElements'] || !('customElements' in _global)) {
         return;
     }
     var callbacks = ['connectedCallback', 'disconnectedCallback', 'adoptedCallback', 'attributeChangedCallback'];
@@ -3302,13 +3306,13 @@ Zone.__load_patch('XHR', function (global, Zone) {
                         // check whether the xhr has registered onload listener
                         // if that is the case, the task should invoke after all
                         // onload listeners finish.
-                        var loadTasks = target['__zone_symbol__loadfalse'];
+                        var loadTasks = target[Zone.__symbol__('loadfalse')];
                         if (loadTasks && loadTasks.length > 0) {
                             var oriInvoke_1 = task.invoke;
                             task.invoke = function () {
                                 // need to load the tasks again, because in other
                                 // load listener, they may remove themselves
-                                var loadTasks = target['__zone_symbol__loadfalse'];
+                                var loadTasks = target[Zone.__symbol__('loadfalse')];
                                 for (var i = 0; i < loadTasks.length; i++) {
                                     if (loadTasks[i] === task) {
                                         loadTasks.splice(i, 1);
